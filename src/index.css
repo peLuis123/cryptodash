@@ -24,6 +24,23 @@ body {
   background-color: #102217;
 }
 
+.sparkline-svg {
+  filter: drop-shadow(0 0 4px rgba(43, 238, 121, 0.3));
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #28392f;
+  border-radius: 10px;
+}
+
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined';
   font-weight: normal;
