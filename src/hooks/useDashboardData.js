@@ -5,6 +5,7 @@ import { getCoinPerformanceChart, getTopMarketCoins } from '../api/market/market
 import { addAssetToPrimaryPortfolio, getDefaultAllocationUsd, getOrCreatePrimaryPortfolio } from '../api/portfolio/portfolioApi'
 import { getCoinIcon, getTrendPath } from '../utils/dashboardCharts'
 import { formatCompactCurrency, formatPrice, formatSignedPercent } from '../utils/dashboardFormatters'
+import { useTranslations } from './useTranslations'
 
 function buildPortfolioPerformanceSeries(positions, markets) {
   if (!positions?.length || !markets?.length) {
@@ -42,6 +43,7 @@ function buildPortfolioPerformanceSeries(positions, markets) {
 }
 
 export function useDashboardData() {
+  const t = useTranslations()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [globalData, setGlobalData] = useState(null)
@@ -85,7 +87,7 @@ export function useDashboardData() {
           return
         }
 
-        setError('No se pudieron cargar datos desde CoinGecko en este momento.')
+        setError(t.common.errors.loadData)
       } finally {
         if (isMounted) {
           setLoading(false)
@@ -160,35 +162,35 @@ export function useDashboardData() {
 
     return [
       {
-        title: 'Total Portfolio Balance',
+        title: t.dashboard.totalPortfolioBalance,
         value: formatCompactCurrency(portfolioSummary.totalValueUsd),
         change: formatSignedPercent(portfolioSummary.change24hPercent),
         positive: portfolioSummary.change24hUsd >= 0,
         path: btc ? getTrendPath(btc.sparkline_in_7d?.price) : 'M0 15 L 100 15',
       },
       {
-        title: 'Portfolio 24h Change',
+        title: t.dashboard.portfolio24hChange,
         value: portfolioDailyDeltaValue,
         change: formatSignedPercent(portfolioSummary.change24hPercent),
         positive: portfolioSummary.change24hUsd >= 0,
         path: eth ? getTrendPath(eth.sparkline_in_7d?.price) : 'M0 15 L 100 15',
       },
       {
-        title: 'Precio BTC',
+        title: t.dashboard.btcPrice,
         value: formatPrice(btc?.current_price),
         change: formatSignedPercent(btc?.price_change_percentage_24h),
         positive: (btc?.price_change_percentage_24h ?? 0) >= 0,
         path: btc ? getTrendPath(btc.sparkline_in_7d?.price) : 'M0 15 L 100 15',
       },
       {
-        title: 'Precio ETH',
+        title: t.dashboard.ethPrice,
         value: formatPrice(eth?.current_price),
         change: formatSignedPercent(eth?.price_change_percentage_24h),
         positive: (eth?.price_change_percentage_24h ?? 0) >= 0,
         path: eth ? getTrendPath(eth.sparkline_in_7d?.price) : 'M0 15 L 100 15',
       },
     ]
-  }, [markets, portfolioSummary])
+  }, [markets, portfolioSummary, t.dashboard])
 
   const marketRows = useMemo(
     () =>
@@ -241,12 +243,12 @@ export function useDashboardData() {
 
   async function addAssetToPortfolio({ assetId, allocationUsd = getDefaultAllocationUsd() }) {
     if (!assetId) {
-      throw new Error('Debes seleccionar un activo.')
+      throw new Error(t.common.errors.selectAsset)
     }
 
     const marketCoin = markets.find((coin) => coin.id === assetId)
     if (!marketCoin) {
-      throw new Error('Activo no disponible en el mercado actual.')
+      throw new Error(t.common.errors.assetNotAvailable)
     }
 
     const updatedPortfolio = addAssetToPrimaryPortfolio({
@@ -256,7 +258,7 @@ export function useDashboardData() {
     })
 
     if (!updatedPortfolio) {
-      throw new Error('No se pudo actualizar el portafolio.')
+      throw new Error(t.common.errors.updatePortfolio)
     }
 
     setPrimaryPortfolio(updatedPortfolio)
@@ -274,12 +276,14 @@ export function useDashboardData() {
     summaryCards,
     marketRows,
     mainPerformancePath,
+    mainPerformanceSeries,
     mainPerformancePriceLabel,
     mainPerformanceChangeLabel,
     mainPerformancePositive,
     markets,
     primaryPortfolio,
     portfolioPerformancePath,
+    portfolioPerformanceSeries,
     portfolioPerformancePriceLabel,
     portfolioPerformanceChangeLabel,
     portfolioPerformancePositive,

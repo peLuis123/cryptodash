@@ -4,6 +4,19 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="CryptoDash - Professional cryptocurrency portfolio tracker and market analysis platform. Track your crypto assets, analyze market trends, and manage your investments in real-time." />
+    <meta name="keywords" content="cryptocurrency, crypto, portfolio, tracker, bitcoin, ethereum, market analysis, crypto dashboard" />
+    <meta name="author" content="Pedro Luis Ramos Calla" />
+    <meta name="theme-color" content="#2bee79" />
+    <script>
+ 
+      (function() {
+        const theme = localStorage.getItem('crypto-dash-theme') || 'dark';
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -14,7 +27,7 @@
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
       rel="stylesheet"
     />
-    <title>CryptoDash | Dashboard</title>
+    <title>CryptoDash</title>
   </head>
   <body>
     <div id="root"></div>

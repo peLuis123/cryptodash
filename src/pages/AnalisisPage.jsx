@@ -3,8 +3,10 @@ import { useOutletContext } from 'react-router-dom'
 
 import { getCoinPerformanceChart } from '../api/market/marketApi'
 import CountUpValue from '../components/common/CountUpValue'
+import { useTranslations } from '../hooks/useTranslations'
 import { getCoinIcon, getTrendPath } from '../utils/dashboardCharts'
 import { formatCompactCurrency, formatCurrency, formatSignedPercent } from '../utils/dashboardFormatters'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 function getMeanAbsoluteDailyChangePercent(prices = []) {
   if (!Array.isArray(prices) || prices.length < 2) {
@@ -51,6 +53,8 @@ function getSparklinePath(prices = []) {
 }
 
 export default function AnalisisPage() {
+  const t = useTranslations()
+  useDocumentTitle(t.pageTitles.analysis, t.pageDescriptions.analysis)
   const {
     loading,
     error,
@@ -197,7 +201,7 @@ export default function AnalisisPage() {
         }
 
         const hasPreviousData = portfolioSeriesByRange.length > 1 && btcSeriesByRange.length > 1
-        setRangeError('No se pudo actualizar la serie para el rango seleccionado.')
+        setRangeError(t.analysis.errors.updateSeries)
         setIsPartialDataMode(hasPreviousData)
       } finally {
         if (isMounted) {
@@ -232,18 +236,10 @@ export default function AnalisisPage() {
 
     return (balanceUsd / totalInvestedUsd) * 100
   }, [balanceUsd, totalInvestedUsd])
-  const rangeTitleLabel = selectedRange === 'TODO' ? 'Histórico' : selectedRange
+  const rangeTitleLabel = selectedRange === 'TODO' ? t.analysis.rangeTitle.TODO : selectedRange
   const rangePeriodLabel = useMemo(() => {
-    const labels = {
-      '1D': 'Último día',
-      '1S': 'Última semana',
-      '1M': 'Último mes',
-      '1A': 'Último año',
-      TODO: 'Todo el histórico',
-    }
-
-    return labels[selectedRange] ?? 'Periodo seleccionado'
-  }, [selectedRange])
+    return t.analysis.rangePeriod[selectedRange] || t.analysis.rangePeriod.default
+  }, [selectedRange, t])
   const portfolioRangeChange = useMemo(() => getSeriesChangePercent(portfolioSeriesByRange), [portfolioSeriesByRange])
   const btcRangeChange = useMemo(() => getSeriesChangePercent(btcSeriesByRange), [btcSeriesByRange])
   const relativeRangeDelta = portfolioRangeChange - btcRangeChange
@@ -254,48 +250,41 @@ export default function AnalisisPage() {
     return `${sign}${Math.abs(relativeRangeDelta).toFixed(2)} pp`
   }, [relativeRangeDelta])
   const insightMessage = useMemo(() => {
-    const rangeLabels = {
-      '1D': 'el último día',
-      '1S': 'la última semana',
-      '1M': 'el último mes',
-      '1A': 'el último año',
-      TODO: null,
-    }
-    const rangeLabel = rangeLabels[selectedRange] ?? null
+    const rangeLabel = t.analysis.rangeLabel[selectedRange] || null
 
     if (!Number.isFinite(relativeRangeDelta)) {
       return rangeLabel
-        ? `Sin señal suficiente para comparar Cartera y BTC en ${rangeLabel}.`
-        : 'Sin señal suficiente para comparar Cartera y BTC.'
+        ? `${t.analysis.insights.noSignalWithRange} ${rangeLabel}.`
+        : `${t.analysis.insights.noSignal}.`
     }
 
     if (Math.abs(relativeRangeDelta) < 0.1) {
-      return rangeLabel ? `Cartera y BTC van en línea en ${rangeLabel}.` : 'Cartera y BTC van en línea.'
+      return rangeLabel ? `${t.analysis.insights.inlineWithRange} ${rangeLabel}.` : `${t.analysis.insights.inline}.`
     }
 
     if (relativeRangeDelta > 0) {
       return rangeLabel
-        ? `Diferencia vs BTC: +${Math.abs(relativeRangeDelta).toFixed(2)} pp en ${rangeLabel}.`
-        : `Diferencia vs BTC: +${Math.abs(relativeRangeDelta).toFixed(2)} pp.`
+        ? `${t.analysis.insights.diffPositive} +${Math.abs(relativeRangeDelta).toFixed(2)} pp ${t.analysis.insights.in} ${rangeLabel}.`
+        : `${t.analysis.insights.diffPositive} +${Math.abs(relativeRangeDelta).toFixed(2)} pp.`
     }
 
     return rangeLabel
-        ? `Diferencia vs BTC: -${Math.abs(relativeRangeDelta).toFixed(2)} pp en ${rangeLabel}.`
-        : `Diferencia vs BTC: -${Math.abs(relativeRangeDelta).toFixed(2)} pp.`
-  }, [relativeRangeDelta, selectedRange])
+        ? `${t.analysis.insights.diffNegative} -${Math.abs(relativeRangeDelta).toFixed(2)} pp ${t.analysis.insights.in} ${rangeLabel}.`
+        : `${t.analysis.insights.diffNegative} -${Math.abs(relativeRangeDelta).toFixed(2)} pp.`
+  }, [relativeRangeDelta, selectedRange, t])
 
   if (loading) {
     return (
-      <div className="custom-scrollbar flex flex-1 items-center justify-center overflow-y-auto p-8">
-        <p className="text-sm font-semibold text-slate-400">Cargando análisis...</p>
+      <div className="custom-scrollbar flex flex-1 items-center justify-center overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <p className="text-sm font-semibold text-slate-400">{t.analysis.loading}</p>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="custom-scrollbar flex flex-1 items-center justify-center overflow-y-auto p-8">
-        <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-8 py-6 text-center">
+      <div className="custom-scrollbar flex flex-1 items-center justify-center overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-6 py-6 text-center sm:px-8">
           <p className="text-sm font-semibold text-red-400">{error}</p>
         </div>
       </div>
@@ -303,44 +292,44 @@ export default function AnalisisPage() {
   }
 
   return (
-    <div className="custom-scrollbar flex-1 overflow-y-auto p-8">
+    <div className="custom-scrollbar flex-1 overflow-y-auto bg-slate-50 p-4 dark:bg-transparent sm:p-6 lg:p-8">
       <div className="flex w-full flex-col gap-6 pb-10">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-[#2bee79]/15 p-2">
-              <span className="material-symbols-outlined text-[#2bee79]">monitoring</span>
+            <div className="rounded-xl bg-emerald-100 p-2 dark:bg-[#2bee79]/15">
+              <span className="material-symbols-outlined text-emerald-600 dark:text-[#2bee79]">monitoring</span>
             </div>
-            <h1 className="text-3xl font-black tracking-tight text-slate-100">Análisis Avanzado</h1>
+            <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">{t.analysis.title}</h1>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-2 rounded-xl border border-[#1a2e23] bg-[#14281d] p-1">
+            <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-100 p-1 dark:border-[#1a2e23] dark:bg-[#14281d]">
               {RANGE_OPTIONS.map((period) => (
                 <button
                   key={period}
                   type="button"
                   onClick={() => setSelectedRange(period)}
                   className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
-                    selectedRange === period ? 'bg-[#2bee79] text-[#102217]' : 'text-slate-400 hover:text-[#2bee79]'
+                    selectedRange === period ? 'bg-[#2bee79] text-[#102217]' : 'text-slate-600 hover:text-[#2bee79] dark:text-slate-400'
                   }`}
                 >
-                  {period}
+                  {t.analysis.rangeOptions[period] || period}
                 </button>
               ))}
             </div>
             <p className="text-xs font-semibold text-slate-500">
-              {lastUpdatedAt ? `Actualizado ${formatRelativeTime(lastUpdatedAt)}` : 'Esperando primera actualización'}
+              {lastUpdatedAt ? `${t.analysis.updated} ${formatRelativeTime(lastUpdatedAt, t)}` : t.analysis.waitingFirstUpdate}
             </p>
           </div>
         </header>
 
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-1">
-            <div className="rounded-2xl border border-[#1a2e23] bg-[#14281d] p-6">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-[#1a2e23] dark:bg-[#14281d]">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-slate-400">Valor Actual</p>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{t.analysis.currentValue}</p>
                 <span className="material-symbols-outlined text-[#2bee79]">account_balance_wallet</span>
               </div>
-              <h3 className="mt-1 text-3xl font-black tracking-tight text-slate-100">
+              <h3 className="mt-1 text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
                 <CountUpValue value={portfolioSummary.totalValueUsd} formatter={formatCurrency} />
               </h3>
               <div
@@ -355,32 +344,32 @@ export default function AnalisisPage() {
                   <CountUpValue value={balanceUsd} formatter={formatCompactCurrency} /> ({formatSignedPercent(totalPnlPercent)})
                 </span>
               </div>
-              <p className="mt-2 text-xs font-semibold text-slate-500">P/L acumulado</p>
+              <p className="mt-2 text-xs font-semibold text-slate-500">{t.analysis.accumulatedPL}</p>
             </div>
 
-            <div className="rounded-2xl border border-[#1a2e23] bg-[#14281d] p-6">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-[#1a2e23] dark:bg-[#14281d]">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-slate-400">Crecimiento del periodo</p>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{t.analysis.periodGrowth}</p>
                 <span className="material-symbols-outlined text-[#2bee79]">query_stats</span>
               </div>
               <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-slate-100">{portfolioRangeChangeLabel}</span>
+                <span className="text-2xl font-black text-slate-900 dark:text-slate-100">{portfolioRangeChangeLabel}</span>
                 <span className="text-xs font-bold text-[#2bee79]">{rangePeriodLabel}</span>
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[#1a2e23] bg-[#14281d] p-6 lg:col-span-2">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 lg:col-span-2 dark:border-[#1a2e23] dark:bg-[#14281d]">
             <div className="mb-4 flex items-center justify-between">
-              <h4 className="text-sm font-bold text-slate-100">Crecimiento del Portafolio ({rangeTitleLabel})</h4>
+              <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t.analysis.portfolioGrowth} ({rangeTitleLabel})</h4>
               <div className="flex flex-wrap gap-4">
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-[#2bee79]" />
-                  <span className="text-xs font-medium text-slate-400">Cartera</span>
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{t.analysis.wallet}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
-                  <span className="text-xs font-medium text-slate-400">Promedio BTC</span>
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{t.analysis.btcAverage}</span>
                 </div>
                 {topAssetLinesByRange.map((assetLine) => (
                   <button
@@ -406,7 +395,7 @@ export default function AnalisisPage() {
               </div>
             </div>
 
-            <div className="h-52 w-full rounded-xl border border-[#1a2e23] bg-[#102217]/70 p-4">
+            <div className="h-52 w-full rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-[#1a2e23] dark:bg-[#102217]/70">
               <svg className="h-full w-full" viewBox="0 0 100 30" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="analysis-chart-fill" x1="0" x2="0" y1="0" y2="1">
@@ -448,13 +437,13 @@ export default function AnalisisPage() {
             </div>
 
             {isPartialDataMode && (
-              <p className="mt-2 inline-flex items-center gap-1 rounded-md border border-[#1a2e23] bg-[#102217] px-2 py-1 text-xs font-semibold text-slate-300">
+              <p className="mt-2 inline-flex items-center gap-1 rounded-md border border-slate-300 bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700 dark:border-[#1a2e23] dark:bg-[#102217] dark:text-slate-300">
                 <span className="material-symbols-outlined text-sm text-[#2bee79]">info</span>
-                Mostrando último dato válido (modo datos parciales)
+                {t.analysis.showingLastValidData}
               </p>
             )}
             {rangeError && !isPartialDataMode && <p className="mt-2 text-xs font-semibold text-red-400">{rangeError}</p>}
-            {rangeLoading && <p className="mt-2 text-xs font-semibold text-slate-400">Actualizando serie…</p>}
+            {rangeLoading && <p className="mt-2 text-xs font-semibold text-slate-400">{t.analysis.updatingSeries}</p>}
 
             <div className="mt-4 flex items-center justify-between text-[10px] font-bold tracking-wide text-slate-500 uppercase">
               {chartDateLabels.map((label) => (
@@ -463,25 +452,25 @@ export default function AnalisisPage() {
             </div>
 
             <div className="mt-2 flex items-center justify-between text-[11px] font-semibold text-slate-500">
-              <span>Inicio: {formatCurrency(periodStartValue)}</span>
-              <span>Actual: {formatCurrency(periodEndValue)}</span>
+              <span>{t.analysis.start} {formatCurrency(periodStartValue)}</span>
+              <span>{t.analysis.current} {formatCurrency(periodEndValue)}</span>
             </div>
 
-            <div className="mt-4 rounded-lg border border-[#1a2e23] bg-[#102217]/70 px-3 py-2">
-              <p className="text-xs font-semibold text-slate-300">{insightMessage}</p>
-              <p className="mt-1 text-[11px] font-medium text-slate-500">Comparación sobre el mismo rango seleccionado.</p>
+            <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-[#1a2e23] dark:bg-[#102217]/70">
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">{insightMessage}</p>
+              <p className="mt-1 text-[11px] font-medium text-slate-500">{t.analysis.comparisonOnSameRange}</p>
 
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#1a2e23] bg-[#14281d] px-2 py-1 text-[11px] font-semibold text-slate-300">
-                  <span className="text-[#2bee79]">Cartera</span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 dark:border-[#1a2e23] dark:bg-[#14281d] dark:text-slate-300">
+                  <span className="text-[#2bee79]">{t.analysis.wallet}</span>
                   <span>{portfolioRangeChangeLabel}</span>
                 </span>
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#1a2e23] bg-[#14281d] px-2 py-1 text-[11px] font-semibold text-slate-300">
+                <span className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 dark:border-[#1a2e23] dark:bg-[#14281d] dark:text-slate-300">
                   <span className="text-red-400">BTC</span>
                   <span>{btcRangeChangeLabel}</span>
                 </span>
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#1a2e23] bg-[#14281d] px-2 py-1 text-[11px] font-semibold text-slate-300">
-                  <span className="text-cyan-400">Dif. vs BTC</span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 dark:border-[#1a2e23] dark:bg-[#14281d] dark:text-slate-300">
+                  <span className="text-cyan-400">{t.analysis.diffVsBtc}</span>
                   <span>{relativeRangeDeltaPpLabel}</span>
                 </span>
               </div>
@@ -491,7 +480,7 @@ export default function AnalisisPage() {
                   {topPortfolioAssets.map((asset) => (
                     <span
                       key={asset.assetId}
-                      className="inline-flex items-center gap-1 rounded-full border border-[#1a2e23] bg-[#14281d] px-2 py-1 text-[11px] font-semibold text-slate-300"
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 dark:border-[#1a2e23] dark:bg-[#14281d] dark:text-slate-300"
                     >
                       <span className="text-[#2bee79]">{asset.symbol}</span>
                       <span>{asset.allocationPercent.toFixed(1)}%</span>
@@ -503,37 +492,37 @@ export default function AnalisisPage() {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-[#1a2e23] bg-[#14281d]">
-          <div className="border-b border-[#1a2e23] px-6 py-4">
-            <h2 className="text-base font-bold text-slate-100">Comparativa de Activos</h2>
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-[#1a2e23] dark:bg-[#14281d]">
+          <div className="border-b border-slate-200 px-6 py-4 dark:border-[#1a2e23]">
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">{t.analysis.compareAssets}</h2>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full min-w-230 text-left">
-              <thead className="border-b border-[#1a2e23] bg-[#102217]">
+              <thead className="border-b border-slate-200 bg-slate-50 dark:border-[#1a2e23] dark:bg-[#102217]">
                 <tr>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Activo</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Precio Actual</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Cambio 24h</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Cambio 7D</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Tendencia (7D)</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">{t.analysis.table.asset}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">{t.analysis.table.currentPrice}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">{t.analysis.table.change24h}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">{t.analysis.table.change7d}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">{t.analysis.table.trend7d}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1a2e23]">
+              <tbody className="divide-y divide-slate-200 dark:divide-[#1a2e23]">
                 {assetRows.map((row) => (
-                  <tr key={row.assetId} className="transition-colors hover:bg-[#1a2e23]/50">
+                  <tr key={row.assetId} className="transition-colors hover:bg-slate-50 dark:hover:bg-[#1a2e23]/50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className={`flex size-10 items-center justify-center rounded-full ${row.iconData.iconBg} ${row.iconData.iconColor}`}>
                           <span className="material-symbols-outlined text-xl">{row.iconData.icon}</span>
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-slate-100">{row.name}</p>
+                          <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{row.name}</p>
                           <p className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">{row.symbol}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm font-semibold text-slate-300">{formatCurrency(row.currentPrice)}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-slate-700 dark:text-slate-300">{formatCurrency(row.currentPrice)}</td>
                     <td className={`px-6 py-4 text-sm font-bold ${row.change24h >= 0 ? 'text-[#2bee79]' : 'text-red-500'}`}>
                       <span className="inline-flex items-center gap-1">
                         <span className="material-symbols-outlined text-sm">
@@ -566,7 +555,7 @@ export default function AnalisisPage() {
                 {!assetRows.length && (
                   <tr>
                     <td className="px-6 py-8 text-center text-sm font-semibold text-slate-400" colSpan={5}>
-                      Sin activos para comparar.
+                      {t.analysis.table.noAssets}
                     </td>
                   </tr>
                 )}
@@ -576,55 +565,55 @@ export default function AnalisisPage() {
         </section>
 
         <section className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border border-[#1a2e23] bg-[#14281d] p-5">
-            <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">Mejor Desempeño (30D)</p>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-[#1a2e23] dark:bg-[#14281d]">
+            <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">{t.analysis.cards.bestPerformer}</p>
             <div className="mt-3 flex items-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#2bee79]/15">
                 <span className="material-symbols-outlined text-[#2bee79]">workspace_premium</span>
               </div>
               <div>
-                <p className="text-lg font-black text-slate-100">{bestPerformer?.name ?? '--'}</p>
+                <p className="text-lg font-black text-slate-900 dark:text-slate-100">{bestPerformer?.name ?? '--'}</p>
                 <p className="text-sm font-black text-[#2bee79]">{formatSignedPercent(bestPerformer?.change7d ?? 0)}</p>
               </div>
             </div>
-            <div className="mt-4 border-t border-[#1a2e23] pt-4">
-              <p className="text-sm text-slate-400">Dominio del portafolio: {(bestPerformer?.allocationPercent ?? 0).toFixed(1)}%</p>
+            <div className="mt-4 border-t border-slate-200 pt-4 dark:border-[#1a2e23]">
+              <p className="text-sm text-slate-600 dark:text-slate-400">{t.analysis.cards.portfolioDominance} {(bestPerformer?.allocationPercent ?? 0).toFixed(1)}%</p>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[#1a2e23] bg-[#14281d] p-5">
-            <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">Mayor variación 7D</p>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-[#1a2e23] dark:bg-[#14281d]">
+            <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">{t.analysis.cards.highestVariation}</p>
             <div className="mt-3 flex items-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#2bee79]/15">
                 <span className="material-symbols-outlined text-[#2bee79]">bolt</span>
               </div>
               <div>
-                <p className="text-lg font-black text-slate-100">{highestVariationAsset?.name ?? '--'}</p>
+                <p className="text-lg font-black text-slate-900 dark:text-slate-100">{highestVariationAsset?.name ?? '--'}</p>
                 <p className="text-sm font-black text-[#2bee79]">
-                  Variación 7D: {formatSignedPercent(highestVariationAsset?.change7d ?? 0)}
+                  {t.analysis.cards.variation7d} {formatSignedPercent(highestVariationAsset?.change7d ?? 0)}
                 </p>
               </div>
             </div>
-            <div className="mt-4 border-t border-[#1a2e23] pt-4">
-              <p className="text-sm text-slate-400">
-                Mayor movimiento absoluto en 7 días: {formatSignedPercent(Math.abs(highestVariationAsset?.change7d ?? 0))}
+            <div className="mt-4 border-t border-slate-200 pt-4 dark:border-[#1a2e23]">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {t.analysis.cards.highestAbsoluteMovement} {formatSignedPercent(Math.abs(highestVariationAsset?.change7d ?? 0))}
               </p>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[#1a2e23] bg-[#14281d] p-5">
-            <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">Resumen de P/L</p>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-[#1a2e23] dark:bg-[#14281d]">
+            <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">{t.analysis.cards.plSummary}</p>
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Ganancias Netas</span>
+                <span className="text-slate-600 dark:text-slate-400">{t.analysis.cards.netGains}</span>
                 <span className="text-xl font-black text-[#2bee79]">{formatCurrency(gainsUsd)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Pérdidas Netas</span>
+                <span className="text-slate-600 dark:text-slate-400">{t.analysis.cards.netLosses}</span>
                 <span className="text-xl font-black text-red-500">-{formatCurrency(lossesUsd)}</span>
               </div>
-              <div className="flex items-center justify-between border-t border-[#1a2e23] pt-3">
-                <span className="text-lg font-black text-slate-100">Balance</span>
+              <div className="flex items-center justify-between border-t border-slate-200 pt-3 dark:border-[#1a2e23]">
+                <span className="text-lg font-black text-slate-900 dark:text-slate-100">{t.analysis.cards.balance}</span>
                 <span className={`text-xl font-black ${balanceUsd >= 0 ? 'text-[#2bee79]' : 'text-red-500'}`}>
                   {formatCurrency(balanceUsd)}
                 </span>
@@ -731,7 +720,7 @@ function getSeriesChangePercent(series = []) {
   return ((last - first) / first) * 100
 }
 
-function formatRelativeTime(dateValue) {
+function formatRelativeTime(dateValue, t) {
   if (!dateValue) {
     return '--'
   }
@@ -741,19 +730,19 @@ function formatRelativeTime(dateValue) {
   const deltaSeconds = Math.max(0, Math.floor((now - then) / 1000))
 
   if (deltaSeconds < 60) {
-    return `hace ${deltaSeconds}s`
+    return `${t.analysis.relativeTime.seconds} ${deltaSeconds}s`
   }
 
   const deltaMinutes = Math.floor(deltaSeconds / 60)
   if (deltaMinutes < 60) {
-    return `hace ${deltaMinutes} min`
+    return `${deltaMinutes} ${t.analysis.relativeTime.minutes}`
   }
 
   const deltaHours = Math.floor(deltaMinutes / 60)
   if (deltaHours < 24) {
-    return `hace ${deltaHours} h`
+    return `${deltaHours} ${t.analysis.relativeTime.hours}`
   }
 
   const deltaDays = Math.floor(deltaHours / 24)
-  return `hace ${deltaDays} d`
+  return `${deltaDays} ${t.analysis.relativeTime.days}`
 }

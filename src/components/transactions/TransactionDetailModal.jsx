@@ -1,10 +1,14 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 
+import { useToast } from '../../contexts/ToastContext'
+import { useTranslations } from '../../hooks/useTranslations'
 import { formatCurrency } from '../../utils/dashboardFormatters'
 
 export default function TransactionDetailModal({ transaction, onClose }) {
-  // Prevent body scroll when modal is open
+  const t = useTranslations()
+  const { success } = useToast()
+
   useEffect(() => {
     document.body.style.overflow = 'hidden'
     return () => {
@@ -14,10 +18,12 @@ export default function TransactionDetailModal({ transaction, onClose }) {
 
   const handleCopyHash = () => {
     navigator.clipboard.writeText(transaction.hash)
+    success(t.transactions.modal.copied)
   }
 
   const handleCopyId = () => {
     navigator.clipboard.writeText(transaction.id)
+    success(t.transactions.modal.copiedId)
   }
 
   return createPortal(
@@ -34,13 +40,13 @@ export default function TransactionDetailModal({ transaction, onClose }) {
     >
       <div className="flex min-h-full items-center justify-center p-4">
         <div
-          className="relative my-8 w-full max-w-2xl rounded-2xl border border-[#2bee79]/20 bg-[#0B1F14] p-8 shadow-2xl"
+          className="relative my-8 w-full max-w-2xl rounded-2xl border border-slate-300 bg-white p-8 shadow-2xl dark:border-[#2bee79]/20 dark:bg-[#0B1F14]"
           onClick={(e) => e.stopPropagation()}
         >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-2 text-slate-400 transition-colors hover:bg-[#2bee79]/10 hover:text-[#2bee79]"
+          className="absolute right-4 top-4 rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-[#2bee79]/10 dark:hover:text-[#2bee79]"
         >
           <span className="material-symbols-outlined">close</span>
         </button>
@@ -54,31 +60,31 @@ export default function TransactionDetailModal({ transaction, onClose }) {
               </span>
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl font-black text-slate-100">Detalle de Transacción</h2>
-              <p className="text-sm text-slate-400">
+              <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100">{t.transactions.modal.title}</h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
                 {transaction.asset.name} ({transaction.asset.symbol})
               </p>
             </div>
             {transaction.type === 'buy' ? (
               <span className="rounded-full border border-[#2bee79]/30 bg-[#2bee79]/20 px-3 py-1.5 text-xs font-black uppercase text-[#2bee79]">
-                COMPRA
+                {t.transactions.type.buy}
               </span>
             ) : (
               <span className="rounded-full border border-red-500/30 bg-red-500/20 px-3 py-1.5 text-xs font-black uppercase text-red-500">
-                VENTA
+                {t.transactions.type.sell}
               </span>
             )}
           </div>
         </div>
 
         {/* Transaction ID */}
-        <div className="mb-6 rounded-xl border border-[#2bee79]/10 bg-[#152A1E] p-4">
-          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">ID de Transacción</p>
+        <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-[#2bee79]/10 dark:bg-[#152A1E]">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">{t.transactions.modal.transactionId}</p>
           <div className="flex items-center justify-between">
             <span className="font-mono text-lg font-bold text-[#2bee79]">{transaction.id}</span>
             <button
               onClick={handleCopyId}
-              className="rounded-lg p-2 transition-colors hover:bg-[#2bee79]/10 hover:text-[#2bee79]"
+              className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-200 hover:text-[#2bee79] dark:hover:bg-[#2bee79]/10"
             >
               <span className="material-symbols-outlined text-slate-400">content_copy</span>
             </button>
@@ -88,9 +94,9 @@ export default function TransactionDetailModal({ transaction, onClose }) {
         {/* Details Grid */}
         <div className="mb-6 grid grid-cols-2 gap-4">
           {/* Date */}
-          <div className="rounded-xl border border-[#2bee79]/10 bg-[#152A1E] p-4">
-            <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">Fecha y Hora</p>
-            <p className="text-sm font-semibold text-slate-100">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-[#2bee79]/10 dark:bg-[#152A1E]">
+            <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">{t.transactions.modal.dateTime}</p>
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
               {new Date(transaction.date).toLocaleString('es-ES', {
                 day: '2-digit',
                 month: 'long',
@@ -102,51 +108,51 @@ export default function TransactionDetailModal({ transaction, onClose }) {
           </div>
 
           {/* Status */}
-          <div className="rounded-xl border border-[#2bee79]/10 bg-[#152A1E] p-4">
-            <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">Estado</p>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-[#2bee79]/10 dark:bg-[#152A1E]">
+            <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">{t.transactions.modal.status}</p>
             {transaction.status === 'completed' && (
               <div className="flex items-center gap-2 text-[#2bee79]">
                 <div className="size-2 animate-pulse rounded-full bg-[#2bee79]"></div>
-                <span className="text-sm font-bold">Completado</span>
+                <span className="text-sm font-bold">{t.transactions.status.completed}</span>
               </div>
             )}
             {transaction.status === 'pending' && (
               <div className="flex items-center gap-2 text-yellow-500">
                 <div className="size-2 rounded-full bg-yellow-500"></div>
-                <span className="text-sm font-bold">Pendiente</span>
+                <span className="text-sm font-bold">{t.transactions.status.pending}</span>
               </div>
             )}
             {transaction.status === 'failed' && (
               <div className="flex items-center gap-2 text-red-500">
                 <div className="size-2 rounded-full bg-red-500"></div>
-                <span className="text-sm font-bold">Fallido</span>
+                <span className="text-sm font-bold">{t.transactions.status.failed}</span>
               </div>
             )}
           </div>
 
           {/* Amount */}
-          <div className="rounded-xl border border-[#2bee79]/10 bg-[#152A1E] p-4">
-            <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">Cantidad</p>
-            <p className="text-lg font-black text-slate-100">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-[#2bee79]/10 dark:bg-[#152A1E]">
+            <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">{t.transactions.modal.amount}</p>
+            <p className="text-lg font-black text-slate-900 dark:text-slate-100">
               {transaction.amount} {transaction.asset.symbol}
             </p>
           </div>
 
           {/* Price */}
-          <div className="rounded-xl border border-[#2bee79]/10 bg-[#152A1E] p-4">
-            <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">Precio Unitario</p>
-            <p className="text-lg font-black text-slate-100">{formatCurrency(transaction.priceUsd)}</p>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-[#2bee79]/10 dark:bg-[#152A1E]">
+            <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">{t.transactions.modal.unitPrice}</p>
+            <p className="text-lg font-black text-slate-900 dark:text-slate-100">{formatCurrency(transaction.priceUsd)}</p>
           </div>
 
           {/* Fee */}
-          <div className="rounded-xl border border-[#2bee79]/10 bg-[#152A1E] p-4">
-            <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">Comisión (Fee)</p>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-[#2bee79]/10 dark:bg-[#152A1E]">
+            <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">{t.transactions.modal.fee}</p>
             <p className="text-lg font-black text-slate-400">{formatCurrency(transaction.feeUsd)}</p>
           </div>
 
           {/* Total */}
-          <div className="rounded-xl border border-[#2bee79]/10 bg-[#152A1E] p-4">
-            <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">Total</p>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-[#2bee79]/10 dark:bg-[#152A1E]">
+            <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">{t.transactions.modal.total}</p>
             <p
               className={`text-lg font-black ${transaction.type === 'buy' ? 'text-[#2bee79]' : 'text-red-500'}`}
             >
@@ -156,11 +162,11 @@ export default function TransactionDetailModal({ transaction, onClose }) {
         </div>
 
         {/* Hash Blockchain */}
-        <div className="mb-6 rounded-xl border border-[#2bee79]/10 bg-[#152A1E] p-4">
-          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">Hash de Blockchain</p>
+        <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-[#2bee79]/10 dark:bg-[#152A1E]">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">{t.transactions.modal.blockchainHash}</p>
           <div className="flex items-center justify-between gap-4">
             <div className="flex-1 overflow-hidden">
-              <p className="truncate font-mono text-sm text-slate-400" title={transaction.hash}>
+              <p className="truncate font-mono text-sm text-slate-600 dark:text-slate-400" title={transaction.hash}>
                 {transaction.hash}
               </p>
             </div>
@@ -169,17 +175,17 @@ export default function TransactionDetailModal({ transaction, onClose }) {
               className="flex items-center gap-2 rounded-lg border border-[#2bee79]/30 bg-[#2bee79]/10 px-3 py-2 text-sm font-bold text-[#2bee79] transition-colors hover:bg-[#2bee79]/20"
             >
               <span className="material-symbols-outlined text-sm">content_copy</span>
-              Copiar
+              {t.transactions.modal.copy}
             </button>
           </div>
         </div>
 
         {/* Network Info */}
-        <div className="rounded-xl border border-[#2bee79]/10 bg-[#152A1E] p-4">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-[#2bee79]/10 dark:bg-[#152A1E]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">Red</p>
-              <p className="text-sm font-semibold text-slate-100">
+              <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">{t.transactions.modal.network}</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                 {transaction.asset.symbol === 'BTC' && 'Bitcoin Network'}
                 {transaction.asset.symbol === 'ETH' && 'Ethereum Network (ERC-20)'}
                 {transaction.asset.symbol === 'SOL' && 'Solana Network'}
@@ -187,8 +193,8 @@ export default function TransactionDetailModal({ transaction, onClose }) {
               </p>
             </div>
             <div>
-              <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">Confirmaciones</p>
-              <p className="text-sm font-semibold text-slate-100">
+              <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">{t.transactions.modal.confirmations}</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                 {transaction.status === 'completed' ? '✓ 12/12' : transaction.status === 'pending' ? '⏳ 3/12' : '✗ 0/12'}
               </p>
             </div>
@@ -201,11 +207,11 @@ export default function TransactionDetailModal({ transaction, onClose }) {
             onClick={onClose}
             className="flex-1 rounded-lg border border-[#2bee79]/30 px-4 py-3 font-bold text-[#2bee79] transition-colors hover:bg-[#2bee79]/10"
           >
-            Cerrar
+            {t.transactions.modal.close}
           </button>
           <button className="flex items-center gap-2 rounded-lg border border-[#2bee79] bg-[#2bee79]/10 px-4 py-3 font-bold text-[#2bee79] transition-colors hover:bg-[#2bee79] hover:text-[#0B1F14]">
             <span className="material-symbols-outlined text-sm">open_in_new</span>
-            Ver en Explorer
+            {t.transactions.modal.viewExplorer}
           </button>
         </div>
       </div>

@@ -1,10 +1,14 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 
+import { useToast } from '../../contexts/ToastContext'
+import { useTranslations } from '../../hooks/useTranslations'
 import { formatCurrency, formatCompactCurrency } from '../../utils/dashboardFormatters'
 
 export default function AssetPreviewDrawer({ asset, onClose, onViewInPortfolio }) {
-  // Prevent body scroll and handle ESC key when drawer is open
+  const t = useTranslations()
+  const { success } = useToast()
+
   useEffect(() => {
     document.body.style.overflow = 'hidden'
     
@@ -25,6 +29,21 @@ export default function AssetPreviewDrawer({ asset, onClose, onViewInPortfolio }
   const change24h = asset.price_change_percentage_24h || 0
   const isPositive = change24h >= 0
 
+  const handleCopySymbol = () => {
+    navigator.clipboard.writeText(asset.symbol?.toUpperCase() || '')
+    success(`${asset.symbol?.toUpperCase()} ${t.market.drawer.symbolCopied}`)
+  }
+
+  const handleCopyPrice = () => {
+    navigator.clipboard.writeText(asset.current_price.toString())
+    success(t.market.drawer.priceCopied)
+  }
+
+  const handleViewInPortfolio = () => {
+    onViewInPortfolio(asset.id)
+    success(t.market.drawer.redirecting)
+  }
+
   return createPortal(
     <>
       {/* Backdrop */}
@@ -36,16 +55,16 @@ export default function AssetPreviewDrawer({ asset, onClose, onViewInPortfolio }
 
       {/* Drawer Panel */}
       <aside
-        className="fixed right-0 top-0 z-9999 flex h-screen w-96 flex-col overflow-y-auto border-l border-[#2bee79]/10 bg-[#152A1E] shadow-2xl"
+        className="fixed right-0 top-0 z-9999 flex h-screen w-96 flex-col overflow-y-auto border-l border-slate-200 bg-white shadow-2xl dark:border-[#2bee79]/10 dark:bg-[#152A1E]"
         style={{ animation: 'slideInRight 0.3s ease-out' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#2bee79]/10 p-6">
-          <h3 className="font-bold text-slate-100">Vista Previa</h3>
+        <div className="flex items-center justify-between border-b border-slate-200 p-6 dark:border-[#2bee79]/10">
+          <h3 className="font-bold text-slate-900 dark:text-slate-100">{t.market.drawer.preview}</h3>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-slate-400 transition-colors hover:bg-[#2bee79]/10 hover:text-slate-100"
+            className="rounded-lg p-1 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-[#2bee79]/10 dark:hover:text-slate-100"
           >
             <span className="material-symbols-outlined text-lg">close</span>
           </button>
@@ -58,12 +77,28 @@ export default function AssetPreviewDrawer({ asset, onClose, onViewInPortfolio }
             <div className="mb-4 flex size-16 items-center justify-center overflow-hidden rounded-2xl shadow-lg">
               <img src={asset.image} alt={asset.name} className="size-full object-cover" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-100">{asset.name}</h2>
-            <p className="font-medium text-slate-500">
-              {asset.symbol?.toUpperCase()} / USD
-            </p>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{asset.name}</h2>
+            <div className="flex items-center gap-2 font-medium text-slate-500 dark:text-slate-500">
+              <p>{asset.symbol?.toUpperCase()} / USD</p>
+              <button
+                onClick={handleCopySymbol}
+                className="rounded-lg p-1 transition-colors hover:bg-slate-100 hover:text-[#2bee79] dark:hover:bg-[#2bee79]/10"
+                title={t.market.drawer.copySymbol}
+              >
+                <span className="material-symbols-outlined text-xs">content_copy</span>
+              </button>
+            </div>
             <div className="mt-4 flex flex-col items-center">
-              <span className="text-4xl font-bold tabular-nums text-slate-100">{formatCurrency(asset.current_price)}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-4xl font-bold tabular-nums text-slate-900 dark:text-slate-100">{formatCurrency(asset.current_price)}</span>
+                <button
+                  onClick={handleCopyPrice}
+                  className="rounded-lg p-1 transition-colors hover:bg-slate-100 hover:text-[#2bee79] dark:hover:bg-[#2bee79]/10"
+                  title={t.market.drawer.copyPrice}
+                >
+                  <span className="material-symbols-outlined text-sm">content_copy</span>
+                </button>
+              </div>
               <span
                 className={`mt-1 flex items-center gap-1 font-bold ${isPositive ? 'text-[#2bee79]' : 'text-red-500'}`}
               >
@@ -77,9 +112,9 @@ export default function AssetPreviewDrawer({ asset, onClose, onViewInPortfolio }
           </div>
 
           {/* Mini Chart */}
-          <div className="rounded-xl border border-[#2bee79]/10 bg-[#0B1F14]/50 p-4">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-[#2bee79]/10 dark:bg-[#0B1F14]/50">
             <div className="mb-4 flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Rendimiento 7D</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-500">{t.market.drawer.performance7d}</span>
               <span
                 className={`text-[10px] font-bold ${
                   asset.price_change_percentage_7d_in_currency >= 0 ? 'text-[#2bee79]' : 'text-red-500'
@@ -121,32 +156,32 @@ export default function AssetPreviewDrawer({ asset, onClose, onViewInPortfolio }
           {/* Market Metrics */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <p className="text-[10px] font-bold uppercase text-slate-500">Cap. Mercado</p>
-              <p className="text-sm font-bold tabular-nums text-slate-100">{formatCompactCurrency(asset.market_cap)}</p>
+              <p className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">{t.market.drawer.metrics.marketCap}</p>
+              <p className="text-sm font-bold tabular-nums text-slate-900 dark:text-slate-100">{formatCompactCurrency(asset.market_cap)}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] font-bold uppercase text-slate-500">Volumen (24h)</p>
-              <p className="text-sm font-bold tabular-nums text-slate-100">{formatCompactCurrency(asset.total_volume)}</p>
+              <p className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">{t.market.drawer.metrics.volume24h}</p>
+              <p className="text-sm font-bold tabular-nums text-slate-900 dark:text-slate-100">{formatCompactCurrency(asset.total_volume)}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] font-bold uppercase text-slate-500">Suministro Circulante</p>
-              <p className="text-sm font-bold tabular-nums text-slate-100">
+              <p className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">{t.market.drawer.metrics.circulatingSupply}</p>
+              <p className="text-sm font-bold tabular-nums text-slate-900 dark:text-slate-100">
                 {asset.circulating_supply
                   ? `${(asset.circulating_supply / 1000000).toFixed(1)}M ${asset.symbol?.toUpperCase()}`
                   : 'N/A'}
               </p>
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] font-bold uppercase text-slate-500">Máximo (24h)</p>
+              <p className="text-[10px] font-bold uppercase text-slate-500">{t.market.drawer.metrics.high24h}</p>
               <p className="text-sm font-bold tabular-nums text-[#2bee79]">{formatCurrency(asset.high_24h)}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] font-bold uppercase text-slate-500">Mínimo (24h)</p>
+              <p className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">{t.market.drawer.metrics.low24h}</p>
               <p className="text-sm font-bold tabular-nums text-red-500">{formatCurrency(asset.low_24h)}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] font-bold uppercase text-slate-500">ATH</p>
-              <p className="text-sm font-bold tabular-nums text-slate-100">{formatCurrency(asset.ath)}</p>
+              <p className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">{t.market.drawer.metrics.ath}</p>
+              <p className="text-sm font-bold tabular-nums text-slate-900 dark:text-slate-100">{formatCurrency(asset.ath)}</p>
             </div>
           </div>
 
@@ -157,44 +192,44 @@ export default function AssetPreviewDrawer({ asset, onClose, onViewInPortfolio }
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2bee79] py-3 font-bold text-[#0B1F14] shadow-lg shadow-[#2bee79]/10 transition-all hover:bg-[#2bee79]/90"
             >
               <span className="material-symbols-outlined text-xl">account_balance_wallet</span>
-              Ver en Portafolio
+              {t.market.drawer.viewInPortfolio}
             </button>
-            <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1a2e24]/50 py-3 font-bold text-slate-100 transition-all hover:bg-[#1a2e24]">
+            <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-100 py-3 font-bold text-slate-900 transition-all hover:bg-slate-200 dark:bg-[#1a2e24]/50 dark:text-slate-100 dark:hover:bg-[#1a2e24]">
               <span className="material-symbols-outlined text-xl">notifications_active</span>
-              Seguir Activo
+              {t.market.drawer.followAsset}
             </button>
           </div>
 
           {/* Market Insights */}
-          <div className="border-t border-[#2bee79]/10 pt-6">
-            <p className="mb-3 text-[10px] font-bold uppercase text-slate-500">Market Insights (Demo)</p>
+          <div className="border-t border-slate-200 pt-6 dark:border-[#2bee79]/10">
+            <p className="mb-3 text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">{t.market.drawer.marketInsights}</p>
             <div className="space-y-4">
               <div className="group cursor-pointer">
-                <h4 className="line-clamp-2 text-xs font-bold text-slate-100 transition-colors group-hover:text-[#2bee79]">
-                  Análisis técnico: {asset.name} muestra señales de consolidación
+                <h4 className="line-clamp-2 text-xs font-bold text-slate-900 transition-colors group-hover:text-[#2bee79] dark:text-slate-100">
+                  {t.market.drawer.technicalAnalysis} {asset.name} {t.market.drawer.showsSignals}
                 </h4>
-                <p className="mt-1 text-[10px] text-slate-500">Datos de mercado simulados</p>
+                <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-500">{t.market.drawer.simulatedData}</p>
               </div>
               <div className="group cursor-pointer">
-                <h4 className="line-clamp-2 text-xs font-bold text-slate-100 transition-colors group-hover:text-[#2bee79]">
-                  Volumen institucional incrementa interés en {asset.symbol?.toUpperCase()}
+                <h4 className="line-clamp-2 text-xs font-bold text-slate-900 transition-colors group-hover:text-[#2bee79] dark:text-slate-100">
+                  {t.market.drawer.institutionalVolume} {asset.symbol?.toUpperCase()}
                 </h4>
-                <p className="mt-1 text-[10px] text-slate-500">Información de demostración</p>
+                <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-500">{t.market.drawer.demoInfo}</p>
               </div>
             </div>
           </div>
 
           {/* Additional Info */}
-          <div className="rounded-xl border border-[#2bee79]/10 bg-[#0B1F14]/50 p-4">
-            <p className="mb-2 text-[10px] font-bold uppercase text-slate-500">Información Adicional</p>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-[#2bee79]/10 dark:bg-[#0B1F14]/50">
+            <p className="mb-2 text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">{t.market.drawer.additionalInfo}</p>
             <div className="space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-slate-400">Ranking:</span>
-                <span className="font-bold text-slate-100">#{asset.market_cap_rank}</span>
+                <span className="text-slate-500 dark:text-slate-400">{t.market.drawer.ranking}</span>
+                <span className="font-bold text-slate-900 dark:text-slate-100">#{asset.market_cap_rank}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Última actualización:</span>
-                <span className="font-bold text-slate-100">
+                <span className="text-slate-500 dark:text-slate-400">{t.market.drawer.lastUpdated}</span>
+                <span className="font-bold text-slate-900 dark:text-slate-100">
                   {asset.last_updated ? new Date(asset.last_updated).toLocaleTimeString('es-ES') : 'N/A'}
                 </span>
               </div>
@@ -228,7 +263,6 @@ export default function AssetPreviewDrawer({ asset, onClose, onViewInPortfolio }
   )
 }
 
-// Helper para generar path del sparkline con área rellena
 function generateSparklinePath(prices) {
   if (!prices || prices.length === 0) return ''
 
@@ -242,7 +276,6 @@ function generateSparklinePath(prices) {
     return `${x},${y}`
   })
 
-  // Create a closed path for fill
   const pathData = `M 0,40 L ${points.join(' L ')} L 100,40 Z`
   return pathData
 }

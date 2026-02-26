@@ -1,9 +1,13 @@
 import { useState } from 'react'
 
 import TransactionDetailModal from '../components/transactions/TransactionDetailModal'
+import { useTranslations } from '../hooks/useTranslations'
+import { useToast } from '../contexts/ToastContext'
+import { useSettings } from '../contexts/SettingsContext'
 import { formatCurrency } from '../utils/dashboardFormatters'
+import { exportToCSV } from '../utils/csvExport'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
-// Mock data con totales matemáticamente coherentes
 const MOCK_TRANSACTIONS = [
   {
     id: 'TX-90245',
@@ -67,20 +71,22 @@ const MOCK_TRANSACTIONS = [
   },
 ]
 
-// Calcular totales reales para coherencia
 const TOTAL_TRANSACTIONS = MOCK_TRANSACTIONS.length
 const BUY_COUNT = MOCK_TRANSACTIONS.filter((t) => t.type === 'buy').length
 const SELL_COUNT = MOCK_TRANSACTIONS.filter((t) => t.type === 'sell').length
 const TOTAL_VOLUME = MOCK_TRANSACTIONS.reduce((acc, t) => acc + t.totalUsd, 0)
 
 export default function TransactionsPage() {
+  const t = useTranslations()
+  const { success } = useToast()
+  const { language } = useSettings()
+  useDocumentTitle(t.pageTitles.transactions, t.pageDescriptions.transactions)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterAsset, setFilterAsset] = useState('all')
   const [selectedTransaction, setSelectedTransaction] = useState(null)
 
-  // Filtrado de transacciones
   const filteredTransactions = MOCK_TRANSACTIONS.filter((tx) => {
     const matchesSearch =
       tx.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -94,23 +100,58 @@ export default function TransactionsPage() {
     return matchesSearch && matchesType && matchesStatus && matchesAsset
   })
 
+  function handleExportTransactions() {
+    const headers = [
+      { key: 'id', label: 'Transaction ID' },
+      { key: 'date', label: t.transactions.modal.dateTime || 'Date' },
+      { key: 'assetName', label: t.transactions.table.asset || 'Asset' },
+      { key: 'assetSymbol', label: 'Symbol' },
+      { key: 'type', label: t.transactions.table.type || 'Type' },
+      { key: 'amount', label: t.transactions.modal.amount || 'Amount' },
+      { key: 'priceUsd', label: t.transactions.modal.unitPrice || 'Price (USD)' },
+      { key: 'totalUsd', label: t.transactions.modal.total || 'Total (USD)' },
+      { key: 'feeUsd', label: t.transactions.modal.fee || 'Fee (USD)' },
+      { key: 'status', label: t.transactions.modal.status || 'Status' },
+    ]
+
+    const dataToExport = filteredTransactions.map((tx) => ({
+      id: tx.id,
+      date: new Date(tx.date).toLocaleString(),
+      assetName: tx.asset.name,
+      assetSymbol: tx.asset.symbol,
+      type: tx.type.toUpperCase(),
+      amount: tx.amount,
+      priceUsd: tx.priceUsd,
+      totalUsd: tx.totalUsd,
+      feeUsd: tx.feeUsd,
+      status: tx.status,
+    }))
+
+    exportToCSV(dataToExport, headers, 'transactions')
+    success(language === 'en' ? 'Transactions exported successfully' : 'Transacciones exportadas exitosamente')
+  }
+
   return (
-    <div className="custom-scrollbar flex-1 overflow-y-auto p-8">
+    <div className="custom-scrollbar flex-1 overflow-y-auto bg-slate-50 p-4 dark:bg-transparent sm:p-6 lg:p-8">
       <div className="flex w-full flex-col gap-6 pb-10">
         {/* Header */}
         <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-3xl font-black tracking-tight text-slate-100">Historial de Transacciones</h2>
-            <p className="text-slate-400">Rastrea tu actividad comercial y movimientos de cartera</p>
+            <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">{t.transactions.title}</h2>
+            <p className="text-slate-600 dark:text-slate-400">{t.transactions.subtitle}</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex cursor-pointer items-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium transition-all hover:border-[#2bee79] dark:border-[#2bee79]/10 dark:bg-[#152A1E]">
               <span className="material-symbols-outlined mr-2 text-[#2bee79]">calendar_today</span>
-              <span>Últimos 30 días</span>
+              <span>{t.transactions.last30Days}</span>
             </div>
-            <button className="flex items-center gap-2 rounded-lg border border-[#2bee79] bg-[#2bee79]/10 px-5 py-2 text-sm font-bold text-[#2bee79] transition-all hover:bg-[#2bee79] hover:text-[#0B1F14]">
+            <button 
+              onClick={handleExportTransactions}
+              disabled={!filteredTransactions.length}
+              className="flex items-center gap-2 rounded-lg border border-[#2bee79] bg-[#2bee79]/10 px-5 py-2 text-sm font-bold text-[#2bee79] transition-all hover:bg-[#2bee79] hover:text-[#0B1F14] disabled:cursor-not-allowed disabled:opacity-50"
+            >
               <span className="material-symbols-outlined text-sm">download</span>
-              Exportar CSV
+              {t.transactions.exportCSV}
             </button>
           </div>
         </header>
@@ -128,7 +169,7 @@ export default function TransactionsPage() {
                 +12.5%
               </div>
             </div>
-            <p className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">Total Transacciones</p>
+            <p className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">{t.transactions.totalTransactions}</p>
             <div className="flex items-end justify-between">
               <h3 className="text-2xl font-black">{TOTAL_TRANSACTIONS}</h3>
               <div className="flex h-7.5 w-20 items-end gap-1 rounded bg-linear-to-t from-[#2bee79]/20 to-transparent px-1">
@@ -152,7 +193,7 @@ export default function TransactionsPage() {
                 +8.4%
               </div>
             </div>
-            <p className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">Volumen Total</p>
+            <p className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">{t.transactions.totalVolume}</p>
             <div className="flex items-end justify-between">
               <h3 className="text-2xl font-black">{formatCurrency(TOTAL_VOLUME)}</h3>
               <div className="flex h-7.5 w-20 items-end gap-1 rounded bg-linear-to-t from-[#2bee79]/20 to-transparent px-1">
@@ -176,7 +217,7 @@ export default function TransactionsPage() {
                 -2.1%
               </div>
             </div>
-            <p className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">Compras Totales</p>
+            <p className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">{t.transactions.totalBuys}</p>
             <div className="flex items-end justify-between">
               <h3 className="text-2xl font-black">{BUY_COUNT}</h3>
               <div className="flex h-7.5 w-20 items-end gap-1 rounded bg-linear-to-t from-red-500/20 to-transparent px-1">
@@ -200,7 +241,7 @@ export default function TransactionsPage() {
                 +5.1%
               </div>
             </div>
-            <p className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">Ventas Totales</p>
+            <p className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">{t.transactions.totalSells}</p>
             <div className="flex items-end justify-between">
               <h3 className="text-2xl font-black">{SELL_COUNT}</h3>
               <div className="flex h-7.5 w-20 items-end gap-1 rounded bg-linear-to-t from-[#2bee79]/20 to-transparent px-1">
@@ -224,7 +265,7 @@ export default function TransactionsPage() {
               </span>
               <input
                 type="text"
-                placeholder="Buscar ID de transacción, activo..."
+                placeholder={t.transactions.search}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full rounded-lg border-none bg-slate-50 py-2 pl-10 pr-4 text-sm transition-all focus:ring-1 focus:ring-[#2bee79] dark:bg-[#0B1F14] dark:placeholder:text-slate-500"
@@ -234,47 +275,47 @@ export default function TransactionsPage() {
             {/* Tipo Filter */}
             <div className="flex items-center gap-2">
               <label className="ml-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Tipo:
+                {t.transactions.filters.type}
               </label>
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
                 className="min-w-30 rounded-lg border-none bg-slate-50 py-2 pr-8 text-sm focus:ring-1 focus:ring-[#2bee79] dark:bg-[#0B1F14]"
               >
-                <option value="all">Todos</option>
-                <option value="buy">Compra</option>
-                <option value="sell">Venta</option>
+                <option value="all">{t.transactions.filters.all}</option>
+                <option value="buy">{t.transactions.filters.buy}</option>
+                <option value="sell">{t.transactions.filters.sell}</option>
               </select>
             </div>
 
             {/* Estado Filter */}
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Estado:
+                {t.transactions.filters.status}
               </label>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
                 className="min-w-35 rounded-lg border-none bg-slate-50 py-2 pr-8 text-sm focus:ring-1 focus:ring-[#2bee79] dark:bg-[#0B1F14]"
               >
-                <option value="all">Todos</option>
-                <option value="completed">Completado</option>
-                <option value="pending">Pendiente</option>
-                <option value="failed">Fallido</option>
+                <option value="all">{t.transactions.filters.all}</option>
+                <option value="completed">{t.transactions.filters.completed}</option>
+                <option value="pending">{t.transactions.filters.pending}</option>
+                <option value="failed">{t.transactions.filters.failed}</option>
               </select>
             </div>
 
             {/* Activo Filter */}
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Activo:
+                {t.transactions.filters.asset}
               </label>
               <select
                 value={filterAsset}
                 onChange={(e) => setFilterAsset(e.target.value)}
                 className="min-w-30 rounded-lg border-none bg-slate-50 py-2 pr-8 text-sm focus:ring-1 focus:ring-[#2bee79] dark:bg-[#0B1F14]"
               >
-                <option value="all">Todos</option>
+                <option value="all">{t.transactions.filters.all}</option>
                 <option value="BTC">BTC</option>
                 <option value="ETH">ETH</option>
                 <option value="SOL">SOL</option>
@@ -295,20 +336,20 @@ export default function TransactionsPage() {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 dark:border-[#2bee79]/10 dark:bg-[#2bee79]/5">
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
-                    ID Transacción
+                    {t.transactions.table.transactionId}
                   </th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Fecha</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Activo</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">{t.transactions.table.date}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">{t.transactions.table.asset}</th>
                   <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Tipo
+                    {t.transactions.table.type}
                   </th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Cantidad</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Precio (USD)</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Fee (USD)</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Total (USD)</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Hash</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Estado</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Acciones</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">{t.transactions.table.amount}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">{t.transactions.table.price}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">{t.transactions.table.fee}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">{t.transactions.table.total}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">{t.transactions.table.hash}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">{t.transactions.table.status}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">{t.transactions.table.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-[#2bee79]/5">
@@ -346,11 +387,11 @@ export default function TransactionsPage() {
                     <td className="px-6 py-4 text-center">
                       {tx.type === 'buy' ? (
                         <span className="inline-flex rounded-full border border-[#2bee79]/30 bg-[#2bee79]/20 px-2.5 py-1 text-[10px] font-black uppercase text-[#2bee79]">
-                          COMPRA
+                          {t.transactions.type.buy}
                         </span>
                       ) : (
                         <span className="inline-flex rounded-full border border-red-500/30 bg-red-500/20 px-2.5 py-1 text-[10px] font-black uppercase text-red-500">
-                          VENTA
+                          {t.transactions.type.sell}
                         </span>
                       )}
                     </td>
@@ -386,19 +427,19 @@ export default function TransactionsPage() {
                       {tx.status === 'completed' && (
                         <div className="flex items-center gap-1.5 text-[#2bee79]">
                           <div className="size-1.5 animate-pulse rounded-full bg-[#2bee79]"></div>
-                          <span className="text-xs font-bold">Completado</span>
+                          <span className="text-xs font-bold">{t.transactions.status.completed}</span>
                         </div>
                       )}
                       {tx.status === 'pending' && (
                         <div className="flex items-center gap-1.5 text-yellow-500">
                           <div className="size-1.5 rounded-full bg-yellow-500"></div>
-                          <span className="text-xs font-bold">Pendiente</span>
+                          <span className="text-xs font-bold">{t.transactions.status.pending}</span>
                         </div>
                       )}
                       {tx.status === 'failed' && (
                         <div className="flex items-center gap-1.5 text-red-500">
                           <div className="size-1.5 rounded-full bg-red-500"></div>
-                          <span className="text-xs font-bold">Fallido</span>
+                          <span className="text-xs font-bold">{t.transactions.status.failed}</span>
                         </div>
                       )}
                     </td>
@@ -412,7 +453,7 @@ export default function TransactionsPage() {
                 {filteredTransactions.length === 0 && (
                   <tr>
                     <td colSpan={11} className="px-6 py-8 text-center text-sm font-semibold text-slate-400">
-                      No se encontraron transacciones
+                      {t.transactions.noResults}
                     </td>
                   </tr>
                 )}
@@ -423,15 +464,15 @@ export default function TransactionsPage() {
           {/* Pagination */}
           <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4 dark:border-[#2bee79]/10 dark:bg-[#2bee79]/5">
             <p className="text-sm text-slate-500">
-              Mostrando <span className="font-bold text-slate-900 dark:text-slate-100">1 - 5</span> de{' '}
-              <span className="font-bold text-slate-900 dark:text-slate-100">{TOTAL_TRANSACTIONS}</span> transacciones
+              {t.transactions.showing} <span className="font-bold text-slate-900 dark:text-slate-100">1 - 5</span> {t.transactions.of}{' '}
+              <span className="font-bold text-slate-900 dark:text-slate-100">{TOTAL_TRANSACTIONS}</span> {t.transactions.transactionsText}
             </p>
             <div className="flex items-center gap-2">
               <button
                 disabled
                 className="rounded-md border border-slate-200 px-3 py-1 text-sm transition-colors hover:bg-[#2bee79]/10 disabled:opacity-50 dark:border-[#2bee79]/20"
               >
-                Anterior
+                {t.transactions.filters.previous}
               </button>
               <button className="rounded-md bg-[#2bee79] px-3 py-1 text-sm font-bold text-[#0B1F14]">1</button>
               <button className="rounded-md border border-slate-200 px-3 py-1 text-sm transition-colors hover:bg-[#2bee79]/10 dark:border-[#2bee79]/20">
@@ -445,7 +486,7 @@ export default function TransactionsPage() {
                 26
               </button>
               <button className="rounded-md border border-slate-200 px-3 py-1 text-sm transition-colors hover:bg-[#2bee79]/10 dark:border-[#2bee79]/20">
-                Siguiente
+                {t.transactions.filters.next}
               </button>
             </div>
           </div>
